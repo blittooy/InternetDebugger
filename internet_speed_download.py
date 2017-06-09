@@ -80,4 +80,4 @@ class DownloadInternetSpeed():
             conn.close()
         except Exception as err:
             logging.error(err)
-            logging.error(speed_records)
+            logging.error(records)
