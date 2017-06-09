@@ -22,7 +22,8 @@ class DownloadInternetSpeed():
         count = 0
         while True:
             fail_count = 0
-            data = self.get_data_with_backoff(fail_count)
+            data = self.get_data()
+            logging.error("Data: {}".format(data))
             records.append(data)
             count += 1
             if count % 5 == 0:
@@ -33,8 +34,8 @@ class DownloadInternetSpeed():
     def make_sqlite_table(self):
         conn = sqlite3.connect('internet_speed.db')
         c = conn.cursor()
-        column_query = ("(date text, ping real, download_speed real"
-                        ", upload_speed real)")
+        column_query = ("(date text, ping real, download_speed real, "
+                        "upload_speed real)")
         query = ("Create Table Internet_Speed {}".format(column_query))
         try:
             c.execute(query)
@@ -46,36 +47,22 @@ class DownloadInternetSpeed():
 
     def get_data(self):
         timestamp = str(datetime.datetime.now())
-        download_speed = self.speed_test_api.download()/1000000
-        upload_speed = self.speed_test_api.upload()/1000000
-        ping = self.speed_test_api.ping()
-        return (timestamp, ping, download_speed, upload_speed)
-
-    def get_data_with_backoff(self, fail_count):
         try:
-            data = self.get_data()
-            if data is None:
-                logging.warning('API returned no data!')
-                timestamp = str(datetime.datetime.now())
-                data = (timestamp, 0, 0, 0)
-            logging.info(data)
-            return data
-        except:
-            fail_count += 1
-            logging.warning('failed {}'.format(fail_count))
-            sleep(fail_count*2)
-            if fail_count > 10:
-                logging.critical("run speed test failure")
-                raise Exception
-            self.get_data_with_backoff(fail_count)
+            download_speed = self.speed_test_api.download()/1000000
+            upload_speed = self.speed_test_api.upload()/1000000
+            ping = self.speed_test_api.ping()
+            return (timestamp, ping, download_speed, upload_speed)
+        except Exception as err:
+            logging.error("No data dl error: {}".format(err))
+            return (timestamp, 0, 0, 0)
 
     def upload_data_to_db(self, records):
         try:
             logging.info('inserting facts in to db')
             conn = sqlite3.connect(self.db_name)
             c = conn.cursor()
-            c.executemany('INSERT INTO {} '
-                          'VALUES (?,?,?,?)'.format(self.table), records)
+            c.executemany('INSERT INTO {} VALUES (?,?,?,?)'.format(self.table),
+                          records)
             conn.commit()
             conn.close()
         except Exception as err:
