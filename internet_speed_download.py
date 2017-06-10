@@ -1,20 +1,18 @@
 import pyspeedtest
-import sqlite3
+from mysql_db import MySQLDB
 import datetime
 import logging
 from time import sleep
 
 
 class DownloadInternetSpeed():
-    def __init__(self, db_name='internet_speed.db',
-                 table='Internet_Speed', log_name='internet_speed.log',
+    def __init__(self, log_name='internet_speed.log',
                  sleep_time=3):
         logging.basicConfig(filename=log_name, level=logging.INFO)
-        self.db_name = db_name
-        self.table = table
+        self.db = MySQLDB.pi_mysql_db()
         self.sleep_time = sleep_time
         self.speed_test_api = pyspeedtest.SpeedTest()
-        self.make_sqlite_table()
+        self.make_mysql_table()
         self.run_speed_test()
 
     def run_speed_test(self):
@@ -31,19 +29,19 @@ class DownloadInternetSpeed():
                 records = []
             sleep(self.sleep_time)
 
-    def make_sqlite_table(self):
-        conn = sqlite3.connect('internet_speed.db')
-        c = conn.cursor()
-        column_query = ("(date text, ping real, download_speed real, "
-                        "upload_speed real)")
-        query = ("Create Table Internet_Speed {}".format(column_query))
+    def make_mysql_table(self):
+        query = ("CREATE TABLE internet_speed ("
+                 " time datetime Not Null, "
+                 " ping real Not Null, "
+                 " download_speed real Not Null,"
+                 " upload_speed real Not Null,"
+                 " Primary Key(time));"
+                 )
         try:
-            c.execute(query)
-            logging.info("table: " + self.table + " for "
-                         + self.db_name + " created")
-        except sqlite3.OperationalError:
-            logging.info("table: {} allready exists".format(self.db_name))
-        conn.close()
+            self.db.execute_query(query)
+            logging.info("table: internet_speed created")
+        except Exception:
+            logging.info("table: internet_speed allready exists")
 
     def get_data(self):
         timestamp = str(datetime.datetime.now())
@@ -59,12 +57,10 @@ class DownloadInternetSpeed():
     def upload_data_to_db(self, records):
         try:
             logging.info('inserting facts in to db')
-            conn = sqlite3.connect(self.db_name)
-            c = conn.cursor()
-            c.executemany('INSERT INTO {} VALUES (?,?,?,?)'.format(self.table),
-                          records)
-            conn.commit()
-            conn.close()
+            insert_query = ("INSERT INTO internet_speed "
+                            "(time, ping, download_speed, upload_speed) "
+                            "VALUES (%s, %s, %s, %s)")
+            self.db.execute_values_query(insert_query, records)
         except Exception as err:
             logging.error(err)
             logging.error(records)
