@@ -18,7 +18,6 @@ class MySQLDB:
 
     @staticmethod
     def pi_mysql_db():
-        print(CredentialsFactory().get_pi_mysql_db_dsn())
         return MySQLDB(CredentialsFactory().get_pi_mysql_db_dsn())
 
     def get_data(self, query, raise_when_no_data=True):
