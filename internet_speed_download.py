@@ -16,17 +16,13 @@ class DownloadInternetSpeed():
         self.run_speed_test()
 
     def run_speed_test(self):
-        records = []
         count = 0
         while True:
             fail_count = 0
             data = self.get_data()
-            logging.error("Data: {}".format(data))
-            records.append(data)
+            logging.info("Data: {}".format(data))
             count += 1
-            if count % 5 == 0:
-                self.upload_data_to_db(records)
-                records = []
+            self.upload_data_to_db(data)
             sleep(self.sleep_time)
 
     def make_mysql_table(self):
@@ -54,13 +50,12 @@ class DownloadInternetSpeed():
             logging.error("No data dl error: {}".format(err))
             return (timestamp, 0, 0, 0)
 
-    def upload_data_to_db(self, records):
+    def upload_data_to_db(self, data):
         try:
             logging.info('inserting facts in to db')
             insert_query = ("INSERT INTO internet_speed "
                             "(time, ping, download_speed, upload_speed) "
                             "VALUES (%s, %s, %s, %s)")
-            self.db.execute_values_query(insert_query, records)
+            self.db.execute_values_query(insert_query, data)
         except Exception as err:
             logging.error(err)
-            logging.error(records)
