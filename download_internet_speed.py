@@ -59,3 +59,6 @@ class DownloadInternetSpeed():
             self.db.execute_values_query(insert_query, data)
         except Exception as err:
             logging.error(err)
+
+if __name__ == '__main__':
+    DownloadInternetSpeed()
